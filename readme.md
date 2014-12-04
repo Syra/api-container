@@ -11,8 +11,7 @@ I will assume that you are cool and using laravel.
 
 First let see at using API from client side.
 ```
-$params = ['host' => 'some.api.route'];
-$Client = CurlClient::getInstance($params);
+$Client = CurlClient::getInstance(['host' => 'some.uri']);
 $dataFromAPI = $Client->get('OurHandler', 'method')
 echo $dataFromAPI;
 ```
