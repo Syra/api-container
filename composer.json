@@ -1,6 +1,6 @@
 {
 	"name": "syra/api-container",
-	"description": "Routers, handlers and client for your api",
+	"description": "Router, handler and client for your api. Package provides classes for implementing communication between php apps.",
 	"license": "MIT",
 	"keywords": ["api"],
 	"authors": [
