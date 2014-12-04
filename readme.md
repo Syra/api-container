@@ -97,4 +97,4 @@ class PageHandler extends AbstractHandler {
 	}
 }
 ```
->**Note:** Note: for more information look to sources.
+>**Note:** for more information look to sources.
