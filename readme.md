@@ -3,6 +3,8 @@ ApiContainer
 
 Batch of simple classes for pretty rare case: it's useful if you implementing communication between several php apps.
 
+[![Build Status](https://travis-ci.org/Syra/api-container.svg?branch=master)](https://travis-ci.org/Syra/api-container)
+
 A brief example of using
 ---------
 I will assume that you are cool and using laravel.
