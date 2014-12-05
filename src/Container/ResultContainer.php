@@ -7,7 +7,12 @@ use Syra\ApiContainer\Exception\ResultContainerException;
 class ResultContainer implements \Iterator, \ArrayAccess {
 	protected $data;
 
-	public function __construct($data) {
+	public function __construct(array $data = []) {
+		foreach ($data as $key => $value) {
+			if (is_array($data[$key])) {
+				$data[$key] = new ResultContainer($data[$key]);
+			}
+		}
 		$this->data = $data;
 	}
 

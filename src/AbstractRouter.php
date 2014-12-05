@@ -5,11 +5,20 @@ namespace Syra\ApiContainer;
 
 use Syra\ApiContainer\Exception\RouterException;
 use Syra\ApiContainer\Container\InputContainer;
+use Syra\ApiContainer\Handler\HandlerInterface;
 use Syra\ApiContainer\Helper\Observer;
+use Syra\ApiContainer\Helper\Serialization\SerializationEngine;
+use Syra\ApiContainer\Helper\Serialization\SerializationEngineInterface;
 
 abstract class AbstractRouter {
 
 	const INVALID_DATA_PROVIDED_ERROR = 'Invalid data provided';
+
+	protected $SerializationEngine;
+
+	public function __construct(SerializationEngineInterface $SerializationEngine = null) {
+		$this->SerializationEngine = $SerializationEngine ? $SerializationEngine : new SerializationEngine();
+	}
 
 	public function route($inputData) {
 		try {
@@ -27,6 +36,7 @@ abstract class AbstractRouter {
 			$namespace = $requestData->get('namespace');
 			$method = $requestData->get('method');
 			$methodParams = [];
+
 			if ($requestData->has('params')) {
 				$methodParams = $requestData->get('params');
 			}
@@ -52,9 +62,9 @@ abstract class AbstractRouter {
 
 			Observer::fireEvent(Observer::getEventName('after', $ActionHandler, $method));
 
-			return $this->serializeData($ActionHandler->getResult());
+			return $this->SerializationEngine->serialize($ActionHandler->getResult());
 		} catch (\Exception $E) {
-			return $this->serializeData([
+			return $this->SerializationEngine->serialize([
 				'error' => true,
 				'errorMessage' => $E->getMessage(),
 				'errorCode' => $E->getCode(),
@@ -64,15 +74,12 @@ abstract class AbstractRouter {
 		}
 	}
 
-	protected function serializeData($data) {
-		return json_encode($data);
-	}
 
 	/**
 	 * @param string $namespace
-	 * @return Handler
+	 * @return HandlerInterface
 	 */
-	abstract public function getHandler($namespace);
+	abstract protected function getHandler($namespace);
 
 	public function completeParams($array) {
 		end($array);

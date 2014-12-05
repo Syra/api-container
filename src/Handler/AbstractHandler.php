@@ -1,8 +1,8 @@
 <?php
 
-namespace Syra\ApiContainer;
+namespace Syra\ApiContainer\Handler;
 
-abstract class AbstractHandler {
+abstract class AbstractHandler implements HandlerInterface {
 	protected $__result;
 	protected $__request;
 

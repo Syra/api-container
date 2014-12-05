@@ -4,16 +4,19 @@ namespace Syra\ApiContainer;
 
 
 use Syra\ApiContainer\Container\ResultContainer;
-use Syra\ApiContainer\Exception\HandlerException;
+use Syra\ApiContainer\Engine\EngineInterface;
 use Syra\ApiContainer\Exception\MisconfigurationException;
 use Syra\ApiContainer\Exception\ReservedException;
+use Syra\ApiContainer\Helper\EngineFactory;
+use Syra\ApiContainer\Helper\Serialization\SerializationEngine;
+use Syra\ApiContainer\Helper\Serialization\SerializationEngineInterface;
 
 abstract class AbstractClient {
 
 	/**
 	 * @var AbstractClient
 	 */
-	protected static $instance;
+	protected static $Instance;
 
 	protected $additionalRequestParams = [];
 	protected $reservedRequestParams = [
@@ -23,18 +26,29 @@ abstract class AbstractClient {
 	];
 	protected $defaultConfiguration = [];
 	protected $configuration;
+	protected $EngineFactory;
+	/**
+	 * @var EngineInterface
+	 */
+	protected $Engine;
+	/**
+	 * @var SerializationEngineInterface
+	 */
+	protected $SerializationEngine;
 
-	public function __construct($params = []) {
+	public function __construct($params = [], EngineInterface $Engine = null, SerializationEngineInterface $SerializationEngine = null) {
 		$this->configuration = array_merge($this->defaultConfiguration, $params);
+		$this->EngineFactory = $Engine ? $Engine : new EngineFactory();
+		$this->SerializationEngine = $SerializationEngine ? $SerializationEngine : new SerializationEngine();
 	}
 
-	public static function getInstance($params = null) {
+	public static function getInstance($params = [], EngineInterface $Engine = null, SerializationEngineInterface $SerializationEngine = null) {
 		if ($params) {
-			self::$instance = new static($params);
-		} elseif (empty(self::$instance)) {
+			self::$Instance = new static($params, $Engine, $SerializationEngine);
+		} elseif (empty(self::$Instance)) {
 			throw new MisconfigurationException('Instance needed to be configured.');
 		}
-		return self::$instance;
+		return self::$Instance;
 	}
 
 	public function set($name, $value) {
@@ -49,8 +63,13 @@ abstract class AbstractClient {
 		$this->additionalRequestParams = [];
 	}
 
-	public static function get($namespace, $method, $params = null, $page = null) {
+	public static function get($type = null, $namespace, $method, $params = null) {
+		if (!$type) {
+			throw new MisconfigurationException('Request type should be provided.');
+		}
 		$Instance = static::getInstance();
+
+		$Instance->Engine = $Instance->EngineFactory->createEngine($type, $Instance->configuration);
 
 		$apiRequestParams = [
 			'namespace' => $namespace,
@@ -59,43 +78,24 @@ abstract class AbstractClient {
 		];
 		$apiRequestParams = array_merge($Instance->additionalRequestParams, $apiRequestParams);
 
-		$result = $Instance->sendRequest($apiRequestParams);
-		$result = $Instance->unserializeData($result);
+		$result = $Instance->Engine->sendRequest($apiRequestParams);
+		$result = $Instance->SerializationEngine->unserialize($result);
 
 		if (isset($result['error'])) {
 			return $Instance->apiErrorHandler(func_get_args(), $apiRequestParams, $result);
 		}
 
-		if ($result) {
-			$Instance->toMagicClass($result);
+		return new ResultContainer($result);
+	}
+
+	public function __call($method, $arguments) {
+		if (substr($method, 0, 3) === 'get') {
+			$type = substr($method, 3);
+			return call_user_func_array([$this, 'get'], array_merge([$type], $arguments));
 		}
-
-		return $result;
+		throw new MisconfigurationException('Invalid method call.');
 	}
 
-	protected function unserializeData($data) {
-		return json_decode($data, true);
-	}
-
-	abstract protected function sendRequest($apiRequestParams);
-
-	protected function toMagicClass(&$data) {
-		if (is_array($data)) {
-			foreach ($data as $key => $value) {
-				if (is_array($data[$key])) {
-					$this->toMagicClass($data[$key]);
-					$data[$key] = new ResultContainer($data[$key]);
-				}
-			}
-			$data = new ResultContainer($data);
-		}
-	}
-
-	protected function apiErrorHandler($callParams, $requestParams, $response) {
-		$exceptionData['call params'] = $callParams;
-		$exceptionData['request params'] = $requestParams;
-		$exceptionData['response'] = $response;
-		throw (new HandlerException('Api returned an error.'))->setDebugData($exceptionData);
-	}
+	abstract protected function apiErrorHandler($callParams, $requestParams, $response);
 
 }

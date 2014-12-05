@@ -12,7 +12,7 @@ I will assume that you are cool and using laravel.
 First let see at using API from client side.
 ```
 $Client = CurlClient::getInstance(['host' => 'some.uri']);
-$dataFromAPI = $Client->get('OurHandler', 'method')
+$dataFromAPI = $Client->getCurl('OurHandler', 'method')
 echo $dataFromAPI;
 ```
 That will print 123. Stay with us to find out how.
@@ -25,14 +25,14 @@ where ApiRouter is child of AbstractRouter that implements getHandler() method.
 ```
 use Syra\ApiContainer\AbstractRouter;
 class ApiRouter extends AbstractRouter {
-	public function getHandler($namespace) {
+	protected function getHandler($namespace) {
 		return App::make($namespace);
 	}
 }
 ```
 And finally our handler
 ```
-use Syra\ApiContainer\AbstractHandler;
+use Syra\ApiContainer\Handler\AbstractHandler;
 class OurHandler extends AbstractHandler {
 	public function method() {
 		$this->someData = 123;//will be available as $respone->someData
@@ -51,10 +51,11 @@ More examples
 ------
 Passing params to your methods:
 ```
-$Client->get('YourHandler', 'method1', $param);
-$Client->get('YourHandler', 'method2', [$param1, $param2, $param3]);
+$Client->getCurl('YourHandler', 'method1', $param);
+$Client->getCurl('YourHandler', 'method2', [$param1, $param2, $param3]);
 ```
 ```
+class YourHandler extends AbstractHandler {
 public function method1($param) {...}
 public function method2($param1, $param2, $param3) {...}
 ```
@@ -66,23 +67,19 @@ echo $response['el'];//using as array
 echo $response->el;//or object
 foreach ($response->el->subEl as $el) {...}//iterating and nested elements also supports
 ```
-You can customize your client and handler via next methods:
+Select engine for communication with API:
 ```
-class YourClient extends AbstractClient {
-	protected function sendRequest($apiRequestParams) {...}
-	protected function unserializeData($data) {...}
-	protected function apiErrorHandler($callParams, $requestParams, $response) {...}
-}
+$Client->getSocket('YourHandler', 'method');
+$Client->get('socket','YourHandler', 'method');
+```
 
-class YourRouter extends AbstractRouter {
-	protected function serializeData($data) {...}
-}
-```
+
+
 And what about authorization, pagination and timezone settings? Not too much.
 ```
-$Client->set('page', 3)->get('Page', 'getOffset')//setting additional param
+$Client->set('page', 3)->getCurl('Page', 'getOffset')//setting additional param
 ...
-use Syra\ApiContainer\AbstractHandler;
+use Syra\ApiContainer\Handler\AbstractHandler;
 use Syra\ApiContainer\Mixin\Pagination;
 use Syra\ApiContainer\Helper\Observer;
 
@@ -98,4 +95,9 @@ class PageHandler extends AbstractHandler {
 	}
 }
 ```
+
 >**Note:** for more information look to sources. 
+
+License
+---
+MIT
